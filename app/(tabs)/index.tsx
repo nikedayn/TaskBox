@@ -1,25 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { View, FlatList, StyleSheet, Platform, KeyboardAvoidingView } from 'react-native';
-import { TextInput, useTheme, Text } from 'react-native-paper';
+import { View, SectionList, StyleSheet, Platform, KeyboardAvoidingView, TouchableOpacity } from 'react-native';
+import { TextInput, useTheme, Text, IconButton } from 'react-native-paper';
+import { useRouter } from 'expo-router'; // 👈 1. Імпортуємо роутер
 import { useTaskStore } from '../../src/store/useTaskStore';
 import { TaskCard } from '../../src/features/tasks/TaskCard';
 import { TaskDetailModal } from '../../src/features/tasks/TaskDetailModal';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { Task } from '../../src/db/schema';
 
 export default function HomeScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const router = useRouter(); // 👈 2. Ініціалізуємо роутер
   
-  const { tasks, fetchTasks, initData, addTask, toggleTaskCompletion, updateTask, deleteTask } = useTaskStore();
+  const { tasks, initData, addTask, toggleTaskCompletion, updateTask, deleteTask } = useTaskStore();
   
   const [newTaskTitle, setNewTaskTitle] = useState('');
-  
-  // ЗМІНА 1: Зберігаємо тільки ID вибраної задачі, а не об'єкт
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [showCompleted, setShowCompleted] = useState(false);
 
-  // ЗМІНА 2: Знаходимо "свіжу" версію задачі зі списку
-  // Якщо tasks оновиться, ця змінна теж автоматично оновиться!
   const selectedTask = tasks.find(t => t.id === selectedTaskId) || null;
   const isModalVisible = !!selectedTask;
 
@@ -34,18 +33,32 @@ export default function HomeScreen() {
   };
 
   const handleTaskPress = (task: Task) => {
-    setSelectedTaskId(task.id); // Зберігаємо тільки ID
+    setSelectedTaskId(task.id);
   };
 
   const handleDismissModal = () => {
     setSelectedTaskId(null);
   };
 
+  const activeTasks = tasks.filter(t => !t.isCompleted);
+  const completedTasks = tasks.filter(t => t.isCompleted);
+
+  const sections = [
+    ...(activeTasks.length > 0 ? [{ title: 'Треба зробити 🔥', data: activeTasks, type: 'active' }] : []),
+    ...(completedTasks.length > 0 ? [{ title: 'Виконано ✅', data: showCompleted ? completedTasks : [], type: 'completed', count: completedTasks.length }] : []),
+  ];
+
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       
+      {/* 👇 3. Оновлений заголовок з кнопкою налаштувань */}
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <Text variant="headlineMedium" style={styles.title}>Brain Dump 🧠</Text>
+        <IconButton 
+          icon="cog-outline" 
+          size={28} 
+          onPress={() => router.push('/settings')} // Перехід на сторінку
+        />
       </View>
 
       <KeyboardAvoidingView 
@@ -53,8 +66,8 @@ export default function HomeScreen() {
         style={styles.keyboardContainer}
       >
         <View style={styles.listContainer}>
-          <FlatList
-            data={tasks}
+          <SectionList
+            sections={sections}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
               <TaskCard 
@@ -63,7 +76,35 @@ export default function HomeScreen() {
                 onPress={handleTaskPress}
               />
             )}
-            contentContainerStyle={{ flexGrow: 1, paddingBottom: 20, paddingTop: 8 }}
+            renderSectionHeader={({ section: { title, type, count } }: any) => {
+              if (type === 'completed') {
+                return (
+                  <TouchableOpacity 
+                    onPress={() => setShowCompleted(!showCompleted)}
+                    style={[styles.sectionHeaderRow, { backgroundColor: theme.colors.background }]}
+                  >
+                    <Text variant="titleMedium" style={{ color: theme.colors.primary, fontWeight: 'bold' }}>
+                      {title} ({count})
+                    </Text>
+                    <IconButton 
+                      icon={showCompleted ? "chevron-up" : "chevron-down"}
+                      size={20}
+                      onPress={() => setShowCompleted(!showCompleted)}
+                      style={{ margin: 0 }}
+                    />
+                  </TouchableOpacity>
+                );
+              }
+              return (
+                <View style={[styles.sectionHeaderRow, { backgroundColor: theme.colors.background }]}>
+                  <Text variant="titleMedium" style={{ color: theme.colors.primary, fontWeight: 'bold' }}>
+                    {title}
+                  </Text>
+                </View>
+              );
+            }}
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: 20 }}
+            stickySectionHeadersEnabled={false}
           />
         </View>
 
@@ -80,7 +121,6 @@ export default function HomeScreen() {
         </View>
       </KeyboardAvoidingView>
 
-      {/* Модалка тепер отримує завжди актуальну selectedTask */}
       <TaskDetailModal 
         visible={isModalVisible}
         onDismiss={handleDismissModal}
@@ -99,6 +139,9 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 16,
     paddingBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   title: {
     fontWeight: 'bold',
@@ -108,7 +151,17 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     flex: 1, 
-    paddingHorizontal: 16,
+    paddingHorizontal: 16, // 👈 ДОДАНО ВІДСТУПИ (зліва і справа)
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    marginTop: 12,
+    marginBottom: 4,
+    // Можна додати borderRadius, якщо ви хочете, щоб фон заголовка був заокруглений
+    borderRadius: 8, 
   },
   inputWrapper: {
     padding: 16,

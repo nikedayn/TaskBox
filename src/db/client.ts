@@ -6,15 +6,19 @@ const expoDb = openDatabaseSync("taskbox.db");
 export const db = drizzle(expoDb, { schema });
 
 export const initDatabase = async () => {
-  console.log("🛠️ Починаю створення таблиць (повна синхронізація)...");
+  console.log("🛠️ Перевірка таблиць бази даних...");
   try {
-    // 1. Видаляємо ВСІ старі таблиці, щоб гарантувати чистоту структури
-    await expoDb.execAsync(`DROP TABLE IF EXISTS subtasks;`); // Спочатку дочірні
-    await expoDb.execAsync(`DROP TABLE IF EXISTS time_blocks;`);
-    await expoDb.execAsync(`DROP TABLE IF EXISTS tasks;`);
-    await expoDb.execAsync(`DROP TABLE IF EXISTS categories;`);
+    // ❌ МИ ПРИБРАЛИ ЦІ РЯДКИ (вони видаляли дані):
+    // await expoDb.execAsync(`DROP TABLE IF EXISTS subtasks;`);
+    // await expoDb.execAsync(`DROP TABLE IF EXISTS time_blocks;`);
+    // await expoDb.execAsync(`DROP TABLE IF EXISTS tasks;`);
+    // await expoDb.execAsync(`DROP TABLE IF EXISTS categories;`);
     
-    // 2. Таблиця CATEGORIES
+    // ✅ Цей код залишаємо. "IF NOT EXISTS" означає:
+    // "Створи таблицю, тільки якщо її ще немає". 
+    // Якщо вона є (і там є ваші задачі), він нічого не чіпатиме.
+
+    // 1. Таблиця CATEGORIES
     await expoDb.execAsync(`
       CREATE TABLE IF NOT EXISTS categories (
         id TEXT PRIMARY KEY NOT NULL,
@@ -24,7 +28,7 @@ export const initDatabase = async () => {
       );
     `);
 
-    // 3. Таблиця TASKS (Всі поля зі схеми)
+    // 2. Таблиця TASKS
     await expoDb.execAsync(`
       CREATE TABLE IF NOT EXISTS tasks (
         id TEXT PRIMARY KEY NOT NULL,
@@ -39,7 +43,7 @@ export const initDatabase = async () => {
       );
     `);
 
-    // 4. Таблиця SUBTASKS (Нова!)
+    // 3. Таблиця SUBTASKS
     await expoDb.execAsync(`
       CREATE TABLE IF NOT EXISTS subtasks (
         id TEXT PRIMARY KEY NOT NULL,
@@ -49,7 +53,7 @@ export const initDatabase = async () => {
       );
     `);
 
-    // 5. Таблиця TIME_BLOCKS (Додано notes)
+    // 4. Таблиця TIME_BLOCKS
     await expoDb.execAsync(`
       CREATE TABLE IF NOT EXISTS time_blocks (
         id TEXT PRIMARY KEY NOT NULL,
@@ -60,9 +64,9 @@ export const initDatabase = async () => {
       );
     `);
     
-    console.log("✅ Всі таблиці успішно створено згідно схеми!");
+    console.log("✅ База даних готова до роботи!");
   } catch (e) {
-    console.error("❌ Помилка БД:", e);
+    console.error("❌ Помилка ініціалізації БД:", e);
     throw e;
   }
 };
