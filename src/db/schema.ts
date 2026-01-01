@@ -1,13 +1,12 @@
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
-import * as Crypto from 'expo-crypto'; // <--- 1. Імпортуємо Expo Crypto
+import * as Crypto from 'expo-crypto';
 
-// Helper для генерації ID
 const generateId = () => Crypto.randomUUID();
 
 // 1. Categories
 export const categories = sqliteTable('categories', {
-  id: text('id').primaryKey().$defaultFn(generateId), // <--- 2. Використовуємо тут
+  id: text('id').primaryKey().$defaultFn(generateId),
   name: text('name').notNull(),
   color: text('color').notNull(),
   isSystem: integer('is_system', { mode: 'boolean' }).default(false),
@@ -15,7 +14,7 @@ export const categories = sqliteTable('categories', {
 
 // 2. Tasks
 export const tasks = sqliteTable('tasks', {
-  id: text('id').primaryKey().$defaultFn(generateId), // <--- і тут
+  id: text('id').primaryKey().$defaultFn(generateId),
   title: text('title').notNull(),
   description: text('description'),
   categoryId: text('category_id').references(() => categories.id),
@@ -28,18 +27,19 @@ export const tasks = sqliteTable('tasks', {
 
 // 3. Subtasks
 export const subtasks = sqliteTable('subtasks', {
-  id: text('id').primaryKey().$defaultFn(generateId), // <--- і тут
+  id: text('id').primaryKey().$defaultFn(generateId),
   taskId: text('task_id').references(() => tasks.id, { onDelete: 'cascade' }).notNull(),
   title: text('title').notNull(),
   isCompleted: integer('is_completed', { mode: 'boolean' }).default(false),
 });
 
-// 4. TimeBlocks
+// 4. TimeBlocks (ОНОВЛЕНО)
 export const timeBlocks = sqliteTable('time_blocks', {
-  id: text('id').primaryKey().$defaultFn(generateId), // <--- і тут
+  id: text('id').primaryKey().$defaultFn(generateId),
   taskId: text('task_id').references(() => tasks.id, { onDelete: 'cascade' }).notNull(),
-  startTime: text('start_time').notNull(),
-  endTime: text('end_time').notNull(),
+  startTime: text('start_time').notNull(), // Наприклад "14:00"
+  endTime: text('end_time').notNull(),     // Наприклад "15:00"
+  date: text('date').notNull(),            // <--- НОВЕ ПОЛЕ: "YYYY-MM-DD"
   notes: text('notes'),
 });
 

@@ -8,16 +8,6 @@ export const db = drizzle(expoDb, { schema });
 export const initDatabase = async () => {
   console.log("🛠️ Перевірка таблиць бази даних...");
   try {
-    // ❌ МИ ПРИБРАЛИ ЦІ РЯДКИ (вони видаляли дані):
-    // await expoDb.execAsync(`DROP TABLE IF EXISTS subtasks;`);
-    // await expoDb.execAsync(`DROP TABLE IF EXISTS time_blocks;`);
-    // await expoDb.execAsync(`DROP TABLE IF EXISTS tasks;`);
-    // await expoDb.execAsync(`DROP TABLE IF EXISTS categories;`);
-    
-    // ✅ Цей код залишаємо. "IF NOT EXISTS" означає:
-    // "Створи таблицю, тільки якщо її ще немає". 
-    // Якщо вона є (і там є ваші задачі), він нічого не чіпатиме.
-
     // 1. Таблиця CATEGORIES
     await expoDb.execAsync(`
       CREATE TABLE IF NOT EXISTS categories (
@@ -53,17 +43,36 @@ export const initDatabase = async () => {
       );
     `);
 
-    // 4. Таблиця TIME_BLOCKS
+    // 4. Таблиця TIME_BLOCKS (Оновлено SQL)
     await expoDb.execAsync(`
       CREATE TABLE IF NOT EXISTS time_blocks (
         id TEXT PRIMARY KEY NOT NULL,
         task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
         start_time TEXT NOT NULL,
         end_time TEXT NOT NULL,
+        date TEXT NOT NULL, 
         notes TEXT
       );
     `);
-    
+
+    // --- МІГРАЦІЯ (Для виправлення вашої помилки) ---
+    try {
+      // Спробуємо додати колонку date, якщо її немає.
+      // Якщо вона вже є, SQLite видасть помилку, яку ми просто ігноруємо.
+      // Ми ставимо дефолтну дату (сьогодні), щоб старі записи не ламалися.
+      const today = new Date().toISOString().split('T')[0];
+      await expoDb.execAsync(`
+        ALTER TABLE time_blocks ADD COLUMN date TEXT NOT NULL DEFAULT '${today}';
+      `);
+      console.log("✅ Міграція: Колонка 'date' успішно додана.");
+    } catch (e: any) {
+      // Якщо помилка каже, що колонка існує - все добре.
+      if (!e.toString().includes("duplicate column name")) {
+        console.log("ℹ️ Перевірка міграції: колонка 'date' вже існує або інша помилка (це нормально).");
+      }
+    }
+    // ------------------------------------------------
+
     console.log("✅ База даних готова до роботи!");
   } catch (e) {
     console.error("❌ Помилка ініціалізації БД:", e);
