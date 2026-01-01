@@ -1,6 +1,8 @@
 import { Stack } from 'expo-router';
 import { PaperProvider, MD3LightTheme as DefaultTheme } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+// 1. Імпортуємо RootView
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 const theme = {
   ...DefaultTheme,
@@ -14,15 +16,16 @@ const theme = {
 
 export default function RootLayout() {
   return (
-    // 1. SafeAreaProvider для правильних відступів на iPhone/Android
-    <SafeAreaProvider>
-      {/* 2. PaperProvider ОБОВ'ЯЗКОВИЙ для роботи Modal та Portal */}
-      <PaperProvider theme={theme}>
-        {/* 3. Stack показує наші екрани (зокрема папку tabs) */}
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        </Stack>
-      </PaperProvider>
-    </SafeAreaProvider>
+    // 2. Обгортаємо ВЕСЬ додаток у GestureHandlerRootView
+    // style={{ flex: 1 }} є обов'язковим!
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <PaperProvider theme={theme}>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          </Stack>
+        </PaperProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
